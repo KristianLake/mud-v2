@@ -1,0 +1,34 @@
+import { IAudioSystem } from './IAudioSystem';
+import { SoundEffectType } from '../../../types/audio';
+import { IAudioPlayer } from './IAudioPlayer';
+import { AudioPlayer } from './AudioPlayer'; // Assuming you have an AudioPlayer class
+import { BaseGameService } from '../BaseGameService';
+import { logger } from '../../../utils/logger';
+
+export class AudioSystem extends BaseGameService implements IAudioSystem {
+  private audioPlayer: IAudioPlayer;
+
+  constructor() {
+    super();
+    this.audioPlayer = new AudioPlayer(); // No need for DI here
+  }
+
+  async playSoundEffect(soundEffect: SoundEffectType): Promise<void> {
+    try {
+      await this.audioPlayer.playSound(soundEffect);
+      logger.info(`Playing sound effect: ${soundEffect.url}`);
+    } catch (error) {
+      logger.error(`Error playing sound effect: ${soundEffect.url}`, { error });
+    }
+  }
+
+  stopSoundEffect(soundEffect: SoundEffectType): void {
+    this.audioPlayer.stopSound(soundEffect);
+    logger.info(`Stopped sound effect: ${soundEffect.url}`);
+  }
+
+  setVolume(soundEffect: SoundEffectType, volume: number): void {
+    this.audioPlayer.setVolume(soundEffect, volume);
+    logger.info(`Set volume for ${soundEffect.url} to ${volume}`);
+  }
+}

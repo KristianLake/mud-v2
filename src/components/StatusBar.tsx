@@ -1,45 +1,27 @@
 import React from 'react';
-import { useGameState } from '../hooks/useGameState';
+import { useGameContext } from '../context/GameContext';
 
 export const StatusBar: React.FC = () => {
-  const { gameState } = useGameState();
+  const { state } = useGameContext();
   
-  if (!gameState) {
+  if (!state) {
     return (
-      <div className="flex justify-between bg-gray-800 p-2 border-b border-gray-700">
-        <div>Health: --/--</div>
-        <div>Level: --</div>
-        <div>Location: Unknown</div>
+      <div className="bg-gray-800 p-2 border-b border-gray-700 text-center">
+        <span className="text-gray-400">Location: Unknown</span>
       </div>
     );
   }
   
-  const { playerStats } = gameState;
-  const currentRoom = gameState.rooms[gameState.playerLocation];
+  const currentRoom = state.rooms[state.playerLocation];
   const locationName = currentRoom ? currentRoom.name : 'Unknown';
   
-  // Calculate health percentage for color coding
-  const healthPercentage = (playerStats.health / playerStats.maxHealth) * 100;
-  let healthColor = 'text-green-400';
-  
-  if (healthPercentage < 30) {
-    healthColor = 'text-red-500';
-  } else if (healthPercentage < 70) {
-    healthColor = 'text-yellow-400';
-  }
-  
   return (
-    <div className="flex justify-between bg-gray-800 p-2 border-b border-gray-700 text-sm md:text-base">
-      <div className={healthColor}>
-        Health: {playerStats.health}/{playerStats.maxHealth}
-      </div>
-      <div className="text-blue-400">
-        Level: {playerStats.level} ({playerStats.experience}/{playerStats.nextLevelExp} XP)
-      </div>
-      <div className="text-purple-400">
+    <div className="bg-gray-800 p-2 border-b border-gray-700 text-center">
+      <span className="text-purple-400 font-medium">
         Location: {locationName}
-      </div>
+      </span>
     </div>
   );
 };
+
 export default StatusBar;

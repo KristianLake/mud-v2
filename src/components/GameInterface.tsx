@@ -16,7 +16,8 @@ const GameInterface: React.FC = () => {
     error, 
     state,
     messages, 
-    addMessage 
+    addMessage,
+    executeCommand
   } = useGameContext();
   
   const { processCommand } = useGameCommands();
@@ -88,11 +89,7 @@ const GameInterface: React.FC = () => {
       </div>
       
       {/* Player status button */}
-      <PlayerStatus 
-        playerStats={state?.playerStats}
-        inventory={state?.inventory}
-        onCommandExecute={handleCommandSubmit}
-      />
+      <PlayerStatus />
     </div>
   );
 };

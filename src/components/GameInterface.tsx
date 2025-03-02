@@ -6,6 +6,7 @@ import LoadingSpinner from './LoadingSpinner';
 import ErrorDisplay from './ErrorDisplay';
 import PlayerStatus from './PlayerStatus';
 import { useGameContext } from '../context/GameContext';
+import { useGameCommands } from '../hooks/useGameCommands';
 import { logger } from '../utils/logger';
 
 const GameInterface: React.FC = () => {
@@ -18,6 +19,7 @@ const GameInterface: React.FC = () => {
     addMessage 
   } = useGameContext();
   
+  const { processCommand } = useGameCommands();
   const [commandInputValue, setCommandInputValue] = useState('');
   
   // Log component lifecycle
@@ -30,22 +32,10 @@ const GameInterface: React.FC = () => {
   
   // Handle command submission
   const handleCommandSubmit = (command: string) => {
-    if (!command.trim() || !gameMaster) return;
+    if (!command.trim()) return;
     
-    // Process command and add as player message
-    addMessage(command, 'player');
-    
-    try {
-      // Get response from game master
-      const response = gameMaster.processCommand(command);
-      // Add response as system message
-      addMessage(response, 'system');
-    } catch (err) {
-      // Handle errors
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      addMessage(`Error: ${errorMsg}`, 'error');
-      logger.error('Error processing command:', err);
-    }
+    // Use the processCommand hook instead of directly calling gameMaster
+    processCommand(command);
     
     // Clear input
     setCommandInputValue('');

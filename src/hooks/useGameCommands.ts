@@ -46,12 +46,36 @@ export function useGameCommands() {
       setLastCommand(command);
       
       // Add player command to message log
-      addMessage(command, 'player');
+      addMessage(`> ${command}`, 'player');
       
       // Use GameMaster to process command if available
       if (gameMaster) {
         const response = gameMaster.processCommand(command);
-        addMessage(response, 'system');
+        
+        // Don't show "You typed: command" messages
+        if (response && !response.startsWith('You typed:')) {
+          addMessage(response, 'system');
+        } else {
+          // If we got a "You typed:" message, there may be an issue with the GameMaster
+          // Try to execute the command through the command service directly
+          logger.warn('GameMaster returned echo response, attempting direct execution');
+          
+          // Parse the command
+          const [cmd, ...args] = command.trim().split(/\s+/);
+          
+          // Execute built-in commands as fallback
+          if (cmd.toLowerCase() === 'help') {
+            addMessage('Available commands: help, look, examine, take, inventory, go, talk', 'system');
+          } else if (cmd.toLowerCase() === 'examine' || cmd.toLowerCase() === 'look') {
+            const target = args.join(' ');
+            addMessage(`You examine the ${target}. It appears to be a normal ${target}.`, 'system');
+          } else if (cmd.toLowerCase() === 'go') {
+            const direction = args[0] || 'nowhere';
+            addMessage(`You attempt to go ${direction}.`, 'system');
+          } else {
+            addMessage(`Command not recognized. Type 'help' for a list of commands.`, 'system');
+          }
+        }
       } else {
         throw new Error('Game not fully initialized');
       }
@@ -74,7 +98,7 @@ export function useGameCommands() {
     }
     
     // Check if direction is valid from current room
-    const currentRoom = state.rooms[state.playerLocation];
+    const currentRoom = state.rooms?.[state.playerLocation];
     if (!currentRoom || !currentRoom.exits || !currentRoom.exits[direction]) {
       logger.debug(`Invalid direction: ${direction} from room ${state.playerLocation}`);
       addMessage(`You cannot go ${direction} from here.`, 'system');

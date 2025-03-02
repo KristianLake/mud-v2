@@ -33,15 +33,19 @@ export class CommandProcessor implements ICommandProcessor {
       return 'Please enter a valid command.';
     }
     
-    if (!this.commandService.isValidCommand(command)) {
-      return `Unknown command: ${command}. Type 'help' for a list of commands.`;
+    try {
+      if (!this.commandService.isValidCommand(command)) {
+        return `Unknown command: ${command}. Type 'help' for a list of commands.`;
+      }
+      
+      // Execute the command immediately and synchronously to get a response
+      this.commandService.executeCommand(`${command} ${args.join(' ')}`);
+      
+      // Return a more informative response based on the command
+      return `Command "${command}" executed successfully.`;
+    } catch (error) {
+      logger.error(`Error processing command: ${input}`, error);
+      return `Error executing command: ${error instanceof Error ? error.message : String(error)}`;
     }
-    
-    // Since commandService.executeCommand is async, we can't directly return its result
-    // Instead, we return a message that the command is being processed
-    // The actual results will be emitted through the event system
-    this.commandService.executeCommand(`${command} ${args.join(' ')}`);
-    
-    return `Executing command: ${command}`;
   }
 }

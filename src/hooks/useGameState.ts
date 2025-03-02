@@ -21,6 +21,7 @@ export function useGameState() {
     logger.debug('Subscribing to state changes');
     
     const unsubscribe = stateService.subscribe((newState) => {
+      logger.debug('Game state updated', { newState });
       setState(newState);
     });
     
@@ -31,8 +32,9 @@ export function useGameState() {
   }, [stateService]);
   
   // Update state function
-  const updateState = useCallback((updater: (state: GameState) => GameState) => {
+  const updateState = useCallback((updater: Partial<GameState> | ((state: GameState) => Partial<GameState>)) => {
     try {
+      logger.debug('Updating game state', { updater });
       return stateService.updateState(updater);
     } catch (error) {
       logger.error('Error updating game state', { error });
@@ -43,6 +45,7 @@ export function useGameState() {
   // Reset state function
   const resetState = useCallback(() => {
     try {
+      logger.debug('Resetting game state');
       return stateService.resetState();
     } catch (error) {
       logger.error('Error resetting game state', { error });

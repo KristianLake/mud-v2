@@ -35,38 +35,56 @@ export class ItemCommand extends BaseCommand {
     }
 
     const action = args[0].toLowerCase();
-    const itemName = args.slice(1).join(' ');
+    const itemIdentifier = args.slice(1).join(' ');
 
     switch (action) {
       case 'take':
       case 'pickup':
       case 'get':
-        if (!itemName) {
+        if (!itemIdentifier) {
           this.listItemsInRoom();
           return '';
         }
-        return this.takeItem(itemName);
+        return this.takeItem(itemIdentifier);
       
       case 'drop':
-        if (!itemName) {
+        if (!itemIdentifier) {
           return "What do you want to drop?";
         }
-        return this.dropItem(itemName);
+        return this.dropItem(itemIdentifier);
       
       case 'examine':
       case 'inspect':
       case 'look':
-        if (!itemName) {
+        if (!itemIdentifier) {
           return "What do you want to examine?";
         }
-        return this.examineItem(itemName);
+        return this.examineItem(itemIdentifier);
+      
+      case 'equip':
+        if (!itemIdentifier) {
+          return "What do you want to equip?";
+        }
+        return this.equipItem(itemIdentifier);
+      
+      case 'unequip':
+        if (!itemIdentifier) {
+          return "What do you want to unequip?";
+        }
+        return this.unequipItem(itemIdentifier);
+      
+      case 'use':
+        if (!itemIdentifier) {
+          return "What do you want to use?";
+        }
+        return this.useItem(itemIdentifier);
       
       default:
-        return `Unknown item action: ${action}. Try 'take', 'drop', or 'examine'.`;
+        return `Unknown item action: ${action}. Try 'take', 'drop', 'examine', 'equip', 'unequip', or 'use'.`;
     }
   }
 
-  private takeItem(itemName: string): string {
+  private takeItem(itemIdentifier: string): string {
     // Get current room
     const state = this.stateService.getState();
     const roomId = state.playerLocation;
@@ -76,49 +94,66 @@ export class ItemCommand extends BaseCommand {
       return "You are in an unknown location.";
     }
     
-    // Find item in room by name
+    // First try to find item by ID (from UI click)
     const itemsInRoom = this.entityService.getItemsInRoom(roomId);
-    const item = itemsInRoom.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    let item = itemsInRoom.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = itemsInRoom.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
     
     if (!item) {
-      return `There's no ${itemName} here to take.`;
+      return `There's no ${itemIdentifier} here to take.`;
     }
     
     // Take item using inventory service
     const success = this.inventoryService.takeItem(item.id);
     
     if (!success) {
-      return `You couldn't take the ${itemName}.`;
+      return `You couldn't take the ${item.name}.`;
     }
     
-    return `You take the ${itemName}.`;
+    return `You take the ${item.name}.`;
   }
 
-  private dropItem(itemName: string): string {
+  private dropItem(itemIdentifier: string): string {
     // Get inventory
     const inventory = this.inventoryService.getInventory();
     
-    // Find item in inventory by name
-    const item = inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    // First try to find item by ID (from UI click)
+    let item = inventory.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = inventory.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
     
     if (!item) {
-      return `You don't have a ${itemName}.`;
+      return `You don't have a ${itemIdentifier}.`;
     }
     
     // Drop item using inventory service
     const success = this.inventoryService.dropItem(item.id);
     
     if (!success) {
-      return `You couldn't drop the ${itemName}.`;
+      return `You couldn't drop the ${item.name}.`;
     }
     
-    return `You dropped the ${itemName}.`;
+    return `You dropped the ${item.name}.`;
   }
 
-  private examineItem(itemName: string): string {
-    // First, check if item is in inventory
+  private examineItem(itemIdentifier: string): string {
+    // Get inventory
     const inventory = this.inventoryService.getInventory();
-    let item = inventory.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    
+    // First try to find item by ID (from UI click)
+    let item = inventory.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = inventory.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
     
     if (item) {
       return `${item.name}: ${item.description}${item.value > 0 ? ` Worth about ${item.value} gold.` : ''}`;
@@ -128,13 +163,130 @@ export class ItemCommand extends BaseCommand {
     const state = this.stateService.getState();
     const roomId = state.playerLocation;
     const itemsInRoom = this.entityService.getItemsInRoom(roomId);
-    item = itemsInRoom.find(i => i.name.toLowerCase() === itemName.toLowerCase());
+    
+    // Try by ID first
+    item = itemsInRoom.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try by name
+    if (!item) {
+      item = itemsInRoom.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
     
     if (item) {
       return `${item.name}: ${item.description} You could take it.`;
     }
     
-    return `You don't see a ${itemName} here.`;
+    return `You don't see a ${itemIdentifier} here.`;
+  }
+
+  private equipItem(itemIdentifier: string): string {
+    // Get inventory
+    const inventory = this.inventoryService.getInventory();
+    
+    // First try to find item by ID (from UI click)
+    let item = inventory.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = inventory.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
+    
+    if (!item) {
+      return `You don't have a ${itemIdentifier} to equip.`;
+    }
+    
+    // Check if item is equippable
+    const equippableTypes = ['weapon', 'armor', 'shield', 'helmet', 'accessory'];
+    if (!equippableTypes.includes(item.type)) {
+      return `You can't equip the ${item.name}.`;
+    }
+    
+    // Get current equipped items
+    const state = this.stateService.getState();
+    const equippedItems = [...(state.equippedItems || [])];
+    
+    // Check if already equipped
+    if (equippedItems.includes(item.id)) {
+      return `You already have the ${item.name} equipped.`;
+    }
+    
+    // Add to equipped items
+    equippedItems.push(item.id);
+    
+    // Update state
+    this.stateService.updateState({
+      equippedItems
+    });
+    
+    // Emit event
+    this.eventService.emit('item:equipped', { itemId: item.id, item });
+    
+    return `You equipped the ${item.name}.`;
+  }
+
+  private unequipItem(itemIdentifier: string): string {
+    // Get state
+    const state = this.stateService.getState();
+    const equippedItems = [...(state.equippedItems || [])];
+    
+    // Get inventory
+    const inventory = this.inventoryService.getInventory();
+    
+    // First try to find item by ID (from UI click)
+    let item = inventory.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = inventory.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
+    
+    if (!item) {
+      return `You don't have a ${itemIdentifier} to unequip.`;
+    }
+    
+    // Check if item is equipped
+    if (!equippedItems.includes(item.id)) {
+      return `The ${item.name} is not equipped.`;
+    }
+    
+    // Remove from equipped items
+    const updatedEquippedItems = equippedItems.filter(id => id !== item.id);
+    
+    // Update state
+    this.stateService.updateState({
+      equippedItems: updatedEquippedItems
+    });
+    
+    // Emit event
+    this.eventService.emit('item:unequipped', { itemId: item.id, item });
+    
+    return `You unequipped the ${item.name}.`;
+  }
+
+  private useItem(itemIdentifier: string): string {
+    // Get inventory
+    const inventory = this.inventoryService.getInventory();
+    
+    // First try to find item by ID (from UI click)
+    let item = inventory.find(i => i.id === itemIdentifier);
+    
+    // If not found by ID, try to find by name (from text command)
+    if (!item) {
+      item = inventory.find(i => i.name.toLowerCase() === itemIdentifier.toLowerCase());
+    }
+    
+    if (!item) {
+      return `You don't have a ${itemIdentifier} to use.`;
+    }
+    
+    // Use the item
+    const success = this.inventoryService.useItem(item.id);
+    
+    if (!success) {
+      return `You couldn't use the ${item.name}.`;
+    }
+    
+    return `You used the ${item.name}.`;
   }
 
   private listItemsInRoom(): void {

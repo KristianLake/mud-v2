@@ -1,4 +1,4 @@
-    return Promise.resolve();
+return Promise.resolve();
   105|    }
   
       at failureErrorWithLog (/home/project/node_modules/esbuild/lib/main.js:1462:15)

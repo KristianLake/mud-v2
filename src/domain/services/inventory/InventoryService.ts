@@ -208,6 +208,8 @@ export class InventoryService extends BaseGameService implements IInventoryServi
    * Take an item from the current room
    */
   takeItem(itemId: string): boolean {
+    this.log('debug', `Taking item ${itemId} from room`);
+    
     // Get current room
     const state = this.stateService.getState();
     const roomId = state.playerLocation;
@@ -220,7 +222,9 @@ export class InventoryService extends BaseGameService implements IInventoryServi
     
     // Check if item is in the room
     if (!room.hasItem(itemId)) {
-      this.messageService.addWarningMessage(`There's no ${itemId} here to take.`);
+      const item = this.entityService.getItem(itemId);
+      const itemName = item ? item.name : itemId;
+      this.messageService.addWarningMessage(`There's no ${itemName} here to take.`);
       return false;
     }
     
